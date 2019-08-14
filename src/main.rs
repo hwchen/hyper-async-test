@@ -2,6 +2,7 @@
 
 use futures_util::TryStreamExt;
 use hyper::Client;
+use hyper_tls::HttpsConnector;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -16,10 +17,6 @@ async fn main() -> Result<()> {
     };
 
     let url = url.parse::<hyper::Uri>().unwrap();
-    if url.scheme_part().map(|s| s.as_ref()) != Some("http") {
-        println!("This doesn't support https right now");
-        return Ok(());
-    }
 
     let res = fetch_url(url).await?;
 
@@ -29,7 +26,9 @@ async fn main() -> Result<()> {
 }
 
 async fn fetch_url(url: hyper::Uri) -> Result<String> {
-    let client = Client::new();
+    let https = HttpsConnector::new(4)?;
+    let client = Client::builder()
+        .build::<_, hyper::Body>(https);
 
     let res = client.get(url).await?;
 
