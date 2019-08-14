@@ -3,29 +3,25 @@
 use futures_util::TryStreamExt;
 use hyper::Client;
 use hyper_tls::HttpsConnector;
+use serde::Deserialize;
+use serde_json;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let url = match std::env::args().nth(1) {
-        Some(url) => url,
-        None => {
-            println!("Please provide a url");
-            return Ok(());
-        }
-    };
+    let url = "https://jsonplaceholder.typicode.com/users";
 
     let url = url.parse::<hyper::Uri>().unwrap();
 
-    let res = fetch_url(url).await?;
+    let res = fetch_json_url(url).await?;
 
-    println!("{}", res);
+    println!("{:#?}", res);
 
     Ok(())
 }
 
-async fn fetch_url(url: hyper::Uri) -> Result<String> {
+async fn fetch_json_url(url: hyper::Uri) -> Result<Vec<User>> {
     let https = HttpsConnector::new(4)?;
     let client = Client::builder()
         .build::<_, hyper::Body>(https);
@@ -35,11 +31,17 @@ async fn fetch_url(url: hyper::Uri) -> Result<String> {
     println!("Response: {}", res.status());
     println!("Headers: {:#?}", res.headers());
 
-    let body = res.into_body();
+    let bytes = res.into_body().try_concat().await?;
 
-    let bytes = body.try_concat().await?;
+    let users = serde_json::from_slice(&bytes)?;
 
     Ok(
-        String::from_utf8(bytes.to_vec())?
+        users
     )
+}
+
+#[derive(Debug, Deserialize)]
+struct User {
+    id: i32,
+    name: String,
 }
