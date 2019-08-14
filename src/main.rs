@@ -1,5 +1,6 @@
 #![feature(async_await)]
 
+use futures_util::TryStreamExt;
 use hyper::Client;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -20,10 +21,14 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    fetch_url(url).await
+    let res = fetch_url(url).await?;
+
+    println!("{}", res);
+
+    Ok(())
 }
 
-async fn fetch_url(url: hyper::Uri) -> Result<()> {
+async fn fetch_url(url: hyper::Uri) -> Result<String> {
     let client = Client::new();
 
     let res = client.get(url).await?;
@@ -31,13 +36,11 @@ async fn fetch_url(url: hyper::Uri) -> Result<()> {
     println!("Response: {}", res.status());
     println!("Headers: {:#?}", res.headers());
 
-    let mut body = res.into_body();
+    let body = res.into_body();
 
-    use std::io::Write;
-    while let Some(next) = body.next().await {
-        let chunk = next?;
-        std::io::stdout().write_all(&chunk)?;
-    }
+    let bytes = body.try_concat().await?;
 
-    Ok(())
+    Ok(
+        String::from_utf8(bytes.to_vec())?
+    )
 }
