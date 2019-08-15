@@ -5,6 +5,11 @@ use hyper::Client;
 use hyper_tls::HttpsConnector;
 use serde::Deserialize;
 use serde_json;
+use tracing::{
+    info,
+    trace,
+    instrument,
+};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -21,26 +26,27 @@ async fn main() -> Result<()> {
 
     let res = fetch_json_url(url, &client).await?;
 
-    println!("{:#?}", res);
+    info!("{:#?}", res);
 
     Ok(())
 }
 
+#[instrument]
 async fn fetch_json_url<C>(url: hyper::Uri, client: &Client<C, hyper::Body>) -> Result<Vec<User>>
     where C: hyper::client::connect::Connect + 'static
 {
     let res = client.get(url).await?;
 
-    println!("Response: {}", res.status());
-    println!("Headers: {:#?}", res.headers());
+    trace!(
+        status = res.status().as_u16(),
+        headers = &format!("{:?}", res.headers()).as_str(),
+    );
 
     let bytes = res.into_body().try_concat().await?;
 
     let users = serde_json::from_slice(&bytes)?;
 
-    Ok(
-        users
-    )
+    Ok(users)
 }
 
 #[derive(Debug, Deserialize)]
