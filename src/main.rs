@@ -6,6 +6,7 @@ use hyper_tls::HttpsConnector;
 use serde::Deserialize;
 use serde_json;
 use tracing::{
+    field,
     info,
     trace,
 };
@@ -42,7 +43,7 @@ async fn fetch_json_url<C>(url: hyper::Uri, client: &Client<C, hyper::Body>) -> 
 
     trace!(
         status = res.status().as_u16(),
-        headers = &format!("{:?}", res.headers()).as_str(),
+        headers = field::debug(res.headers()),
     );
 
     let bytes = res.into_body().try_concat().await?;
