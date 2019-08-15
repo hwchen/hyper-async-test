@@ -10,22 +10,25 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // instantiate client
+    let https = HttpsConnector::new(4)?;
+    let client = Client::builder()
+        .build::<_, hyper::Body>(https);
+
     let url = "https://jsonplaceholder.typicode.com/users";
 
     let url = url.parse::<hyper::Uri>().unwrap();
 
-    let res = fetch_json_url(url).await?;
+    let res = fetch_json_url(url, &client).await?;
 
     println!("{:#?}", res);
 
     Ok(())
 }
 
-async fn fetch_json_url(url: hyper::Uri) -> Result<Vec<User>> {
-    let https = HttpsConnector::new(4)?;
-    let client = Client::builder()
-        .build::<_, hyper::Body>(https);
-
+async fn fetch_json_url<C>(url: hyper::Uri, client: &Client<C, hyper::Body>) -> Result<Vec<User>>
+    where C: hyper::client::connect::Connect + 'static
+{
     let res = client.get(url).await?;
 
     println!("Response: {}", res.status());
