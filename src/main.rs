@@ -8,7 +8,6 @@ use serde_json;
 use tracing::{
     info,
     trace,
-    instrument,
 };
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -35,7 +34,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-#[instrument]
+#[tracing::instrument]
 async fn fetch_json_url<C>(url: hyper::Uri, client: &Client<C, hyper::Body>) -> Result<Vec<User>>
     where C: hyper::client::connect::Connect + 'static
 {
