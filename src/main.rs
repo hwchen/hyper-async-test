@@ -15,6 +15,10 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // set up logging
+    let subscriber = tracing_fmt::FmtSubscriber::builder().finish();
+    tracing::subscriber::set_global_default(subscriber)?;
+
     // instantiate client
     let https = HttpsConnector::new(4)?;
     let client = Client::builder()
